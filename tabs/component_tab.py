@@ -344,8 +344,7 @@ def render_component_tab() -> None:
             c = SENSITIVITY_COLOR.get(val, "#6b7599")
             return f"color: {c}; font-weight: 500"
 
-        styled = rf_df.style.applymap(_style_sens, subset=["Sensitivity"])
-
+styled = rf_df.style.map(_style_sens, subset=["Sensitivity"])
         st.dataframe(
             styled,
             use_container_width=True,
