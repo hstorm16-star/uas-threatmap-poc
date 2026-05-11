@@ -339,25 +339,26 @@ def render_component_tab() -> None:
     if not rf_df.empty:
         rf_df = rf_df.sort_values("Procurement Risk", ascending=False)
 
-        # Colour-code the sensitivity column
-        def _style_sens(val):
-            c = SENSITIVITY_COLOR.get(val, "#6b7599")
-            return f"color: {c}; font-weight: 500"
+       # Colour-code the sensitivity column
+def _style_sens(val):
+    c = SENSITIVITY_COLOR.get(val, "#6b7599")
+    return f"color: {c}; font-weight: 500"
 
-    styled = rf_df.style.map(_style_sens, subset=["Sensitivity"])
-            st.dataframe(
-            styled,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "Procurement Risk": st.column_config.ProgressColumn(
-                    "Risk (0–10)", min_value=0, max_value=10, format="%d"
-                ),
-                "Export Control": st.column_config.TextColumn(
-                    "Export control", width="medium"
-                ),
-            },
-        )
+styled = rf_df.style.map(_style_sens, subset=["Sensitivity"])
+
+st.dataframe(
+    styled,
+    use_container_width=True,
+    hide_index=True,
+    column_config={
+        "Procurement Risk": st.column_config.ProgressColumn(
+            "Risk (0–10)", min_value=0, max_value=10, format="%d"
+        ),
+        "Export Control": st.column_config.TextColumn(
+            "Export control", width="medium"
+        ),
+    },
+)
 
         # Download
         csv = rf_df.to_csv(index=False)
