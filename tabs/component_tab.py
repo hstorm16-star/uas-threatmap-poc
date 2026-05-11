@@ -18,37 +18,35 @@ from data.component_data import (
     get_region_component_matrix,
     get_red_flag_table,
     SENSITIVITY_COLOR,
-    SENSITIVITY_ORDER,
     CATEGORY_ICON,
 )
 
-# ── Colour / label helpers ────────────────────────────────────────────────────
 RISK_BADGE = {
-    10: ("badge-crit",  "CRITICAL"),
-    9:  ("badge-crit",  "CRITICAL"),
-    8:  ("badge-high",  "HIGH"),
-    7:  ("badge-high",  "HIGH"),
-    6:  ("badge-mod",   "ELEVATED"),
-    5:  ("badge-mod",   "MODERATE"),
-    4:  ("badge-low",   "LOW"),
-    3:  ("badge-low",   "LOW"),
-    2:  ("badge-low",   "LOW"),
-    1:  ("badge-low",   "LOW"),
-    0:  ("badge-low",   "LOW"),
+    10: ("badge-crit", "CRITICAL"),
+    9: ("badge-crit", "CRITICAL"),
+    8: ("badge-high", "HIGH"),
+    7: ("badge-high", "HIGH"),
+    6: ("badge-mod", "ELEVATED"),
+    5: ("badge-mod", "MODERATE"),
+    4: ("badge-low", "LOW"),
+    3: ("badge-low", "LOW"),
+    2: ("badge-low", "LOW"),
+    1: ("badge-low", "LOW"),
+    0: ("badge-low", "LOW"),
 }
 
 CONF_BADGE = {
-    "High":       "badge-hi-conf",
-    "Medium":     "badge-med-conf",
-    "Low":        "badge-lo-conf",
+    "High": "badge-hi-conf",
+    "Medium": "badge-med-conf",
+    "Low": "badge-lo-conf",
     "Unverified": "badge-unver",
 }
 
 SENS_BADGE = {
-    "Common civilian":    "badge-low",
-    "Dual-use":           "badge-mod",
+    "Common civilian": "badge-low",
+    "Dual-use": "badge-mod",
     "Sensitive dual-use": "badge-high",
-    "Military-adjacent":  "badge-crit",
+    "Military-adjacent": "badge-crit",
 }
 
 PLOTLY_BASE = dict(
@@ -85,11 +83,7 @@ def _section(title: str) -> None:
     )
 
 
-# ── Main render function ──────────────────────────────────────────────────────
-
 def render_component_tab() -> None:
-    """Renders the full Component Intelligence tab. Call from app.py tabs[N]."""
-
     st.markdown("## Component Intelligence")
     st.markdown(
         "<div style='color:#6b7599;font-size:13px;margin-bottom:8px'>"
@@ -100,68 +94,47 @@ def render_component_tab() -> None:
     )
     st.divider()
 
-    # ── Load data ─────────────────────────────────────────────────────────────
     df = get_component_intelligence()
 
-    # ── Sidebar-style filters rendered inline at top ──────────────────────────
     with st.expander("🔍  Filters", expanded=True):
         fc1, fc2, fc3, fc4, fc5 = st.columns(5)
 
         all_cats = sorted(df["category"].unique())
-        sel_cats = fc1.multiselect(
-            "Category", all_cats, default=all_cats, label_visibility="visible"
-        )
+        sel_cats = fc1.multiselect("Category", all_cats, default=all_cats)
 
         all_sens = ["Common civilian", "Dual-use", "Sensitive dual-use", "Military-adjacent"]
-        sel_sens = fc2.multiselect(
-            "Sensitivity", all_sens, default=all_sens, label_visibility="visible"
-        )
+        sel_sens = fc2.multiselect("Sensitivity", all_sens, default=all_sens)
 
         all_regions = sorted({r for row in df["procurement_regions"] for r in row})
-        sel_regions = fc3.multiselect(
-            "Procurement region", all_regions, default=all_regions, label_visibility="visible"
-        )
+        sel_regions = fc3.multiselect("Procurement region", all_regions, default=all_regions)
 
-        risk_min, risk_max = fc4.slider(
-            "Procurement risk (0–10)", 0, 10, (0, 10)
-        )
+        risk_min, risk_max = fc4.slider("Procurement risk (0–10)", 0, 10, (0, 10))
 
         all_conf = ["High", "Medium", "Low", "Unverified"]
-        sel_conf = fc5.multiselect(
-            "Source confidence", all_conf, default=all_conf, label_visibility="visible"
-        )
+        sel_conf = fc5.multiselect("Source confidence", all_conf, default=all_conf)
 
-    # Apply filters
     mask = (
         df["category"].isin(sel_cats)
         & df["sensitivity_level"].isin(sel_sens)
         & df["source_confidence"].isin(sel_conf)
         & df["procurement_risk_score"].between(risk_min, risk_max)
-        & df["procurement_regions"].apply(
-            lambda regs: any(r in sel_regions for r in regs)
-        )
+        & df["procurement_regions"].apply(lambda regs: any(r in sel_regions for r in regs))
     )
     fdf = df[mask].copy()
 
-    # ── KPI row ───────────────────────────────────────────────────────────────
     k1, k2, k3, k4, k5, k6 = st.columns(6)
-    k1.metric("Components tracked",        len(fdf))
-    k2.metric("Military-adjacent",         len(fdf[fdf["sensitivity_level"] == "Military-adjacent"]))
-    k3.metric("Sensitive dual-use",        len(fdf[fdf["sensitivity_level"] == "Sensitive dual-use"]))
-    k4.metric("Avg procurement risk",      f"{fdf['procurement_risk_score'].mean():.1f}/10" if len(fdf) else "—")
-    k5.metric("High-risk (≥8)",           len(fdf[fdf["procurement_risk_score"] >= 8]))
-    k6.metric("Categories represented",    fdf["category"].nunique())
+    k1.metric("Components tracked", len(fdf))
+    k2.metric("Military-adjacent", len(fdf[fdf["sensitivity_level"] == "Military-adjacent"]))
+    k3.metric("Sensitive dual-use", len(fdf[fdf["sensitivity_level"] == "Sensitive dual-use"]))
+    k4.metric("Avg procurement risk", f"{fdf['procurement_risk_score'].mean():.1f}/10" if len(fdf) else "—")
+    k5.metric("High-risk (≥8)", len(fdf[fdf["procurement_risk_score"] >= 8]))
+    k6.metric("Categories represented", fdf["category"].nunique())
 
     st.divider()
-
-    # ════════════════════════════════════════════════════════════════
-    # SECTION A — OVERVIEW CHARTS
-    # ════════════════════════════════════════════════════════════════
     _section("A · Visualisations")
 
     row1_l, row1_r = st.columns(2)
 
-    # Chart 1 — Sensitivity distribution
     with row1_l:
         _section("Component risk distribution by sensitivity")
         sens_counts = (
@@ -172,38 +145,41 @@ def render_component_tab() -> None:
         )
         sens_counts.columns = ["Sensitivity", "Count"]
         fig_sens = px.bar(
-            sens_counts, x="Sensitivity", y="Count",
-            color="Sensitivity", color_discrete_map=SENSITIVITY_COLOR,
+            sens_counts,
+            x="Sensitivity",
+            y="Count",
+            color="Sensitivity",
+            color_discrete_map=SENSITIVITY_COLOR,
             template="plotly_dark",
         )
         fig_sens.update_layout(showlegend=False, **PLOTLY_BASE)
         fig_sens.update_traces(marker_line_width=0)
         st.plotly_chart(fig_sens, use_container_width=True)
 
-    # Chart 2 — Category breakdown (pie)
     with row1_r:
         _section("Component count by category")
         cat_counts = fdf["category"].value_counts().reset_index()
         cat_counts.columns = ["Category", "Count"]
         fig_cat = px.pie(
-            cat_counts, names="Category", values="Count",
+            cat_counts,
+            names="Category",
+            values="Count",
             color_discrete_sequence=CHART_COLORS,
-            template="plotly_dark", hole=0.42,
+            template="plotly_dark",
+            hole=0.42,
         )
-        fig_cat.update_layout(
-            **PLOTLY_BASE,
-            legend=dict(font_size=9, orientation="v"),
-        )
+        fig_cat.update_layout(**PLOTLY_BASE, legend=dict(font_size=9, orientation="v"))
         fig_cat.update_traces(textfont_size=9)
         st.plotly_chart(fig_cat, use_container_width=True)
 
     row2_l, row2_r = st.columns(2)
 
-    # Chart 3 — Procurement risk score distribution
     with row2_l:
         _section("Procurement risk score distribution")
         fig_risk = px.histogram(
-            fdf, x="procurement_risk_score", nbins=10,
+            fdf,
+            x="procurement_risk_score",
+            nbins=10,
             color_discrete_sequence=["#f07c2a"],
             template="plotly_dark",
             labels={"procurement_risk_score": "Risk Score (0–10)"},
@@ -212,7 +188,6 @@ def render_component_tab() -> None:
         fig_risk.update_traces(marker_line_width=0)
         st.plotly_chart(fig_risk, use_container_width=True)
 
-    # Chart 4 — Sensitive dual-use component count per category (stacked bar)
     with row2_r:
         _section("Sensitive + military-adjacent components by category")
         sens_cat = (
@@ -222,20 +197,23 @@ def render_component_tab() -> None:
             .reset_index(name="Count")
         )
         fig_sc = px.bar(
-            sens_cat, x="Count", y="category", color="sensitivity_level",
+            sens_cat,
+            x="Count",
+            y="category",
+            color="sensitivity_level",
             color_discrete_map=SENSITIVITY_COLOR,
-            orientation="h", template="plotly_dark",
+            orientation="h",
+            template="plotly_dark",
             labels={"category": "", "sensitivity_level": "Sensitivity"},
         )
         fig_sc.update_layout(**PLOTLY_BASE, yaxis=dict(autorange="reversed"))
         st.plotly_chart(fig_sc, use_container_width=True)
 
-    # Chart 5 — Component × region matrix (heatmap)
     st.divider()
     _section("Component-by-region procurement matrix")
     matrix = get_region_component_matrix(fdf)
+
     if not matrix.empty:
-        # Filter matrix columns to selected regions
         matrix_cols = [c for c in matrix.columns if c in sel_regions]
         if matrix_cols:
             matrix_filtered = matrix[matrix_cols]
@@ -244,14 +222,19 @@ def render_component_tab() -> None:
                     z=matrix_filtered.values,
                     x=matrix_filtered.columns.tolist(),
                     y=matrix_filtered.index.tolist(),
-                    colorscale=[[0, "#0d0f15"], [0.3, "#1e2a3a"], [0.7, "#f07c2a"], [1, "#e8503a"]],
+                    colorscale=[
+                        [0, "#0d0f15"],
+                        [0.3, "#1e2a3a"],
+                        [0.7, "#f07c2a"],
+                        [1, "#e8503a"],
+                    ],
                     hovertemplate="%{y}<br>%{x}: %{z} components<extra></extra>",
                     showscale=True,
                     colorbar=dict(
-                       title=dict(
-    text="Count",
-    font=dict(size=10, color="#6b7599")
-),
+                        title=dict(
+                            text="Count",
+                            font=dict(size=10, color="#6b7599"),
+                        ),
                         tickfont=dict(size=9, color="#6b7599"),
                         bgcolor="#0d0f15",
                     ),
@@ -273,9 +256,6 @@ def render_component_tab() -> None:
     else:
         st.info("No component-region data available.")
 
-    # ════════════════════════════════════════════════════════════════
-    # SECTION B — COMPONENT CATALOGUE
-    # ════════════════════════════════════════════════════════════════
     st.divider()
     _section("B · Component catalogue")
 
@@ -284,10 +264,9 @@ def render_component_tab() -> None:
         placeholder="Component name, use case, export control regime, notes…",
         label_visibility="collapsed",
     )
+
     if search_term:
-        mask_search = fdf.apply(
-            lambda r: search_term.lower() in str(r).lower(), axis=1
-        )
+        mask_search = fdf.apply(lambda r: search_term.lower() in str(r).lower(), axis=1)
         fdf = fdf[mask_search]
 
     st.markdown(
@@ -296,7 +275,6 @@ def render_component_tab() -> None:
         unsafe_allow_html=True,
     )
 
-    # Group by category
     for cat in sorted(fdf["category"].unique()):
         icon = CATEGORY_ICON.get(cat, "◌")
         cat_df = fdf[fdf["category"] == cat].sort_values(
@@ -322,9 +300,6 @@ def render_component_tab() -> None:
 
         st.markdown("")
 
-    # ════════════════════════════════════════════════════════════════
-    # SECTION C — RED FLAG TABLE
-    # ════════════════════════════════════════════════════════════════
     st.divider()
     _section("C · Procurement red-flag register")
     st.markdown(
@@ -336,31 +311,30 @@ def render_component_tab() -> None:
     )
 
     rf_df = get_red_flag_table(fdf)
+
     if not rf_df.empty:
         rf_df = rf_df.sort_values("Procurement Risk", ascending=False)
 
-       # Colour-code the sensitivity column
-def _style_sens(val):
-    c = SENSITIVITY_COLOR.get(val, "#6b7599")
-    return f"color: {c}; font-weight: 500"
+        def _style_sens(val):
+            c = SENSITIVITY_COLOR.get(val, "#6b7599")
+            return f"color: {c}; font-weight: 500"
 
-styled = rf_df.style.map(_style_sens, subset=["Sensitivity"])
+        styled = rf_df.style.map(_style_sens, subset=["Sensitivity"])
 
-st.dataframe(
-    styled,
-    use_container_width=True,
-    hide_index=True,
-    column_config={
-        "Procurement Risk": st.column_config.ProgressColumn(
-            "Risk (0–10)", min_value=0, max_value=10, format="%d"
-        ),
-        "Export Control": st.column_config.TextColumn(
-            "Export control", width="medium"
-        ),
-    },
-)
+        st.dataframe(
+            styled,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Procurement Risk": st.column_config.ProgressColumn(
+                    "Risk (0–10)", min_value=0, max_value=10, format="%d"
+                ),
+                "Export Control": st.column_config.TextColumn(
+                    "Export control", width="medium"
+                ),
+            },
+        )
 
-        # Download
         csv = rf_df.to_csv(index=False)
         st.download_button(
             "Download red-flag register (.csv)",
@@ -371,20 +345,12 @@ st.dataframe(
     else:
         st.info("No red flag data for the current filter selection.")
 
-    # ════════════════════════════════════════════════════════════════
-    # SECTION D — ANALYST VIEW
-    # ════════════════════════════════════════════════════════════════
     st.divider()
     _section("D · Analyst view")
     _render_analyst_view(fdf)
 
 
-# ── Card renderer ─────────────────────────────────────────────────────────────
-
 def _render_component_card(row: pd.Series) -> None:
-    """Renders the expanded detail card for a single component."""
-
-    # Header badges
     c1, c2, c3, c4 = st.columns([2, 2, 2, 2])
     c1.markdown(_sens_badge(row["sensitivity_level"]), unsafe_allow_html=True)
     c2.markdown(_risk_badge(row["procurement_risk_score"]), unsafe_allow_html=True)
@@ -397,7 +363,6 @@ def _render_component_card(row: pd.Series) -> None:
 
     st.markdown("")
 
-    # Two-column detail layout
     left, right = st.columns(2)
 
     with left:
@@ -440,7 +405,6 @@ def _render_component_card(row: pd.Series) -> None:
         )
         st.markdown(region_chips, unsafe_allow_html=True)
 
-    # Notes + source
     if row.get("notes"):
         st.markdown("")
         st.markdown(
@@ -459,11 +423,7 @@ def _render_component_card(row: pd.Series) -> None:
         )
 
 
-# ── Analyst view renderer ─────────────────────────────────────────────────────
-
 def _render_analyst_view(df: pd.DataFrame) -> None:
-    """Answers the four key analyst questions from the filtered component dataset."""
-
     st.markdown(
         "<div style='color:#6b7599;font-size:12px;margin-bottom:14px'>"
         "Structured analysis of the filtered component dataset across four intelligence questions."
@@ -471,7 +431,6 @@ def _render_analyst_view(df: pd.DataFrame) -> None:
         unsafe_allow_html=True,
     )
 
-    # ── Q1: Highest procurement risk ────────────────────────────────────────
     with st.expander("Q1 · Which components create the highest procurement risk?", expanded=True):
         top_risk = (
             df.sort_values("procurement_risk_score", ascending=False)
@@ -481,7 +440,6 @@ def _render_analyst_view(df: pd.DataFrame) -> None:
         top_risk.columns = ["Component", "Category", "Sensitivity", "Risk Score", "Control Regime"]
 
         if not top_risk.empty:
-            # Narrative
             top1 = top_risk.iloc[0]
             st.markdown(
                 f"<div class='alert-box'>The highest-risk component in the current filter set is "
@@ -492,19 +450,22 @@ def _render_analyst_view(df: pd.DataFrame) -> None:
             )
 
             def _style_risk(val):
-                if val >= 9:   return "color: #e8503a; font-weight: 600"
-                elif val >= 7: return "color: #f07c2a; font-weight: 500"
-                elif val >= 5: return "color: #f0c040"
+                if val >= 9:
+                    return "color: #e8503a; font-weight: 600"
+                if val >= 7:
+                    return "color: #f07c2a; font-weight: 500"
+                if val >= 5:
+                    return "color: #f0c040"
                 return "color: #3ab87a"
 
-            styled_risk = top_risk.style.applymap(_style_risk, subset=["Risk Score"])
+            styled_risk = top_risk.style.map(_style_risk, subset=["Risk Score"])
             st.dataframe(styled_risk, use_container_width=True, hide_index=True)
         else:
             st.info("No components match the current filter.")
 
-    # ── Q2: Regional concentration of sensitive components ──────────────────
     with st.expander("Q2 · Which regions show concentration of sensitive components?"):
         sens_df = df[df["sensitivity_level"].isin(["Sensitive dual-use", "Military-adjacent"])]
+
         if not sens_df.empty:
             region_counts: dict[str, int] = Counter()
             for _, row in sens_df.iterrows():
@@ -516,7 +477,6 @@ def _render_analyst_view(df: pd.DataFrame) -> None:
                 .sort_values("Sensitive Component Count", ascending=False)
             )
 
-            # Narrative
             top_reg = reg_df.iloc[0]
             st.markdown(
                 f"<div class='info-box'><b>{top_reg['Region']}</b> is the most represented procurement "
@@ -527,13 +487,17 @@ def _render_analyst_view(df: pd.DataFrame) -> None:
             )
 
             fig_reg = px.bar(
-                reg_df, x="Sensitive Component Count", y="Region",
-                orientation="h", color="Sensitive Component Count",
+                reg_df,
+                x="Sensitive Component Count",
+                y="Region",
+                orientation="h",
+                color="Sensitive Component Count",
                 color_continuous_scale=[[0, "#1e2a3a"], [0.5, "#f07c2a"], [1, "#e8503a"]],
                 template="plotly_dark",
             )
             fig_reg.update_layout(
-                showlegend=False, **PLOTLY_BASE,
+                showlegend=False,
+                **PLOTLY_BASE,
                 height=300,
                 yaxis=dict(autorange="reversed"),
             )
@@ -541,11 +505,10 @@ def _render_analyst_view(df: pd.DataFrame) -> None:
         else:
             st.info("No sensitive or military-adjacent components in current filter set.")
 
-    # ── Q3: Civilian items elevated by context ───────────────────────────────
     with st.expander("Q3 · Which components are common civilian items but elevated in context?"):
         civ_elevated = df[
-            (df["sensitivity_level"].isin(["Common civilian", "Dual-use"])) &
-            (df["procurement_risk_score"] >= 5)
+            (df["sensitivity_level"].isin(["Common civilian", "Dual-use"]))
+            & (df["procurement_risk_score"] >= 5)
         ].sort_values("procurement_risk_score", ascending=False)
 
         if not civ_elevated.empty:
@@ -566,9 +529,8 @@ def _render_analyst_view(df: pd.DataFrame) -> None:
                     f"<div style='font-size:11px;color:#6b7599'>{row['category']} · {row['sensitivity_level']}</div>",
                     unsafe_allow_html=True,
                 )
-                col_b.markdown(
-                    _risk_badge(row["procurement_risk_score"]), unsafe_allow_html=True
-                )
+                col_b.markdown(_risk_badge(row["procurement_risk_score"]), unsafe_allow_html=True)
+
                 if row.get("red_flags"):
                     st.markdown(
                         f"<div style='font-size:11px;color:#6b7599;margin-left:10px;margin-bottom:8px'>"
@@ -578,13 +540,12 @@ def _render_analyst_view(df: pd.DataFrame) -> None:
         else:
             st.info("No elevated civilian components in current filter set.")
 
-    # ── Q4: Collection gaps ──────────────────────────────────────────────────
     with st.expander("Q4 · What collection gaps remain?"):
         low_conf = df[df["source_confidence"].isin(["Low", "Unverified"])]
-        no_url   = df[df["source_url"].isna() | (df["source_url"] == "")]
+        no_url = df[df["source_url"].isna() | (df["source_url"] == "")]
         high_risk_low_conf = df[
-            (df["procurement_risk_score"] >= 7) &
-            (df["source_confidence"].isin(["Low", "Medium", "Unverified"]))
+            (df["procurement_risk_score"] >= 7)
+            & (df["source_confidence"].isin(["Low", "Medium", "Unverified"]))
         ]
 
         st.markdown(
