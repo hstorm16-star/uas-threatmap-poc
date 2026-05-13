@@ -88,13 +88,7 @@ Installation
 ```
 # Installation
 
-```bash
-git clone https://github.com/YOUR_USERNAME/uas-threatmap-poc.git
-cd uas-threatmap-poc
-
-pip install -r requirements.txt
-
-streamlit run app.py
+https://uas-threatmap-poc-rdxtzc8zsn9lqceojcaukn.streamlit.app/
 ```
 
 ---
